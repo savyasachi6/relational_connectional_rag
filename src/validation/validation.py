@@ -45,20 +45,46 @@ async def run_validation_pipeline(
     return revised, reports
 
 
+from pydantic import BaseModel, Field
+
+# --- Validation Schemas ---
+class GatekeeperReport(BaseModel):
+    ok: bool = Field(description="True if the answer addresses the question, False if evasive.")
+    reason: str = Field(description="Reason for the decision.")
+
+class AuditorReport(BaseModel):
+    ok: bool = Field(description="True if strictly grounded in context.")
+    issues: List[str] = Field(description="List of ungrounded claims or hallucinations.")
+    missing_citations: List[str] = Field(description="Information missing citations.")
+
+class StrategistReport(BaseModel):
+    ok: bool = Field(description="True if the answer matches the risk profile constraints.")
+    concerns: List[str] = Field(description="Strategic or safety concerns.")
+
+
 async def _gatekeeper(llm: LLMClient, query: str, answer: str) -> Tuple[bool, dict]:
     prompt = f"""
 You are a gatekeeper.
 Task: Decide if the ANSWER directly addresses the QUESTION and is not evasive.
 QUESTION: {query}
 ANSWER: {answer}
-Respond with pure JSON: {{"ok": true/false, "reason": "..."}}
 """
-    result = await llm.complete(prompt)
     try:
+        if hasattr(llm, 'client') and llm.client:
+             response = llm.client.beta.chat.completions.parse(
+                 model=llm.model_name,
+                 messages=[{"role": "user", "content": prompt}],
+                 response_format=GatekeeperReport,
+                 temperature=0.0
+             )
+             report = response.choices[0].message.parsed.model_dump()
+             return report["ok"], report
+             
+        result = await llm.complete(prompt + "\nRespond with pure JSON: {'ok': true/false, 'reason': '...'}")
         report = json.loads(result)
         return report.get("ok", False), report
-    except:
-        return True, {"raw": result, "error": "parse_failure"}
+    except Exception as e:
+        return True, {"error": str(e)}
 
 
 async def _auditor(llm: LLMClient, answer: str, chunks: List[RetrievedChunk]) -> Tuple[bool, dict]:
@@ -71,14 +97,23 @@ CONTEXT:
 
 ANSWER:
 {answer}
-Respond with pure JSON: {{"ok": true/false, "issues": ["..."], "missing_citations": ["..."]}}
 """
-    result = await llm.complete(prompt)
     try:
+        if hasattr(llm, 'client') and llm.client:
+             response = llm.client.beta.chat.completions.parse(
+                 model=llm.model_name,
+                 messages=[{"role": "user", "content": prompt}],
+                 response_format=AuditorReport,
+                 temperature=0.0
+             )
+             report = response.choices[0].message.parsed.model_dump()
+             return report["ok"], report
+             
+        result = await llm.complete(prompt + "\nRespond with pure JSON: {'ok': true/false, 'issues': [], 'missing_citations': []}")
         report = json.loads(result)
         return report.get("ok", False), report
-    except:
-        return True, {"raw": result, "error": "parse_failure"}
+    except Exception as e:
+        return True, {"error": str(e)}
 
 
 async def _strategist(llm: LLMClient, query: str, answer: str, risk_profile: str) -> Tuple[bool, dict]:
@@ -87,14 +122,23 @@ You are a strategist operating at risk profile: {risk_profile}.
 Task: Evaluate whether the ANSWER is reasonable and complete for the QUESTION, given a {risk_profile} risk tolerance. 
 QUESTION: {query}
 ANSWER: {answer}
-Respond with pure JSON: {{"ok": true/false, "concerns": ["..."]}}
 """
-    result = await llm.complete(prompt)
     try:
+        if hasattr(llm, 'client') and llm.client:
+             response = llm.client.beta.chat.completions.parse(
+                 model=llm.model_name,
+                 messages=[{"role": "user", "content": prompt}],
+                 response_format=StrategistReport,
+                 temperature=0.0
+             )
+             report = response.choices[0].message.parsed.model_dump()
+             return report["ok"], report
+             
+        result = await llm.complete(prompt + "\nRespond with pure JSON: {'ok': true/false, 'concerns': []}")
         report = json.loads(result)
         return report.get("ok", False), report
-    except:
-        return True, {"raw": result, "error": "parse_failure"}
+    except Exception as e:
+        return True, {"error": str(e)}
 
 
 async def _rewrite_with_feedback(
