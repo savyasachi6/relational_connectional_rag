@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # 1. Unified Storage: PostgreSQL with the pgvector extension
+  postgres-pgvector:
+    image: ankane/pgvector:latest
+    container_name: rag-database
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-rag_knowledge_base}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # 2. Reasoning Engine & Retrieval API
+  api-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: rag-api
+    depends_on:
+      postgres-pgvector:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres-pgvector
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-rag_knowledge_base}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - rag-network
+
+  # 3. Data Ingestion & Restructuring Worker
+  ingestion-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ingestion
+    container_name: rag-worker
+    depends_on:
+      postgres-pgvector:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres-pgvector
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-rag_knowledge_base}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - rag-network
+
+volumes:
+  pgdata:
+
+
+networks:
+  rag-network:
+    driver: bridge

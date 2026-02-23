@@ -1,0 +1,41 @@
+# Dockerfile for the Data Ingestion Worker
+# This background worker handles restructuring raw documents, 
+# structure-aware chunking, and generating metadata (summaries, QA pairs).
+
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set environment variables to prevent Python from writing .pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory within the container
+WORKDIR /app
+
+# Install system dependencies
+# These may be needed for specific document parsing libraries (e.g. poppler for PDFs),
+# and psycopg2 for PostgreSQL connectivity.
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    poppler-utils \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
+# Again, assuming a generic requirements file for background workers (e.g., Celery)
+COPY docker/requirements.worker.txt /app/requirements.txt
+
+# Install Python dependencies
+# In a real scenario, this installs Unstructured, LlamaParse, or similar libraries.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the core ingestion worker code into the container
+# We assume the worker code lives in a /src/worker directory
+COPY src/worker /app/src/worker
+COPY src/shared /app/src/shared
+
+# Command to run the background worker (e.g., Celery)
+# This command implies Celery is used to pick up parsing tasks.
+CMD ["celery", "-A", "src.worker.tasks", "worker", "--loglevel=info"]

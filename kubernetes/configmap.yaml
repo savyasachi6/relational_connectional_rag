@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-config
+  labels:
+    app: scalable-rag
+data:
+  # Database Connection Details
+  POSTGRES_DB: "rag_knowledge_base"
+  POSTGRES_USER: "postgres"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+
+  # System Tuning
+  CHUNK_MIN_TOKENS: "128"
+  CHUNK_MAX_TOKENS: "512"
+  CHUNK_OVERLAP: "50"
+  RETRIEVAL_TOP_K: "10"
+  KEYWORD_TOP_K: "10"
+  RERANK_FINAL_K: "5"
+
+  # Note: Sensitive data like OPENAI_API_KEY and POSTGRES_PASSWORD 
+  # should reside in a Kubernetes Secret, not this ConfigMap.

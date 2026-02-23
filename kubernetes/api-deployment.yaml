@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  labels:
+    app: scalable-rag
+    component: reasoning-api
+spec:
+  replicas: 2 # Scale up the API handling user queries
+  selector:
+    matchLabels:
+      app: scalable-rag
+      component: reasoning-api
+  template:
+    metadata:
+      labels:
+        app: scalable-rag
+        component: reasoning-api
+    spec:
+      containers:
+      - name: api
+        image: scalable-rag-api:latest # Ensure this image is built/pushed to your registry
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        env:
+        - name: OPENAI_API_KEY
+          value: "your-api-key-here" # For production, use SecretKeyRef
+        - name: POSTGRES_PASSWORD
+          value: "postgres" # For production, use SecretKeyRef
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-api-service
+  labels:
+    app: scalable-rag
+    component: reasoning-api
+spec:
+  type: NodePort # Use LoadBalancer for cloud environments
+  ports:
+  - port: 80
+    targetPort: 8000
+    nodePort: 30080
+  selector:
+    app: scalable-rag
+    component: reasoning-api

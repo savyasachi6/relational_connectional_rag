@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-statefulset
+  labels:
+    app: scalable-rag
+    component: database
+spec:
+  serviceName: "postgres-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scalable-rag
+      component: database
+  template:
+    metadata:
+      labels:
+        app: scalable-rag
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: ankane/pgvector:latest
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: rag-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: rag-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          value: "postgres" # For production, use SecretKeyRef
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  labels:
+    app: scalable-rag
+    component: database
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: scalable-rag
+    component: database

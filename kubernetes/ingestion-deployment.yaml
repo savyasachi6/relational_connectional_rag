@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-deployment
+  labels:
+    app: scalable-rag
+    component: ingestion-worker
+spec:
+  replicas: 1 # Scale based on ingestion queue backlog
+  selector:
+    matchLabels:
+      app: scalable-rag
+      component: ingestion-worker
+  template:
+    metadata:
+      labels:
+        app: scalable-rag
+        component: ingestion-worker
+    spec:
+      containers:
+      - name: ingestion-worker
+        image: scalable-rag-worker:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        env:
+        - name: OPENAI_API_KEY
+          value: "your-api-key-here" # For production, use SecretKeyRef
+        - name: POSTGRES_PASSWORD
+          value: "postgres" # For production, use SecretKeyRef

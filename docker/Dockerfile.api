@@ -1,0 +1,41 @@
+# Dockerfile for the Reasoning Engine & Retrieval API
+# This component handles hybrid search queries, multi-agent orchestration, and the validation layer.
+
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set environment variables to prevent Python from writing .pyc files
+# and to ensure stdout/stderr are unbuffered.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory within the container
+WORKDIR /app
+
+# Install system dependencies
+# These may be needed for specific python packages (e.g. psycopg2 for postgres)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
+# Note: For this architectural blueprint, we assume a requirements.txt exists 
+# that contains frameworks like FastAPI, SQLAlchemy, pgvector, LangChain/LlamaIndex, etc.
+COPY docker/requirements.api.txt /app/requirements.txt
+
+# Install Python dependencies
+# In a real scenario, this would install the necessary RAG libraries.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the core API application code into the container
+# We assume the API code lives in a /src/api directory
+COPY src/api /app/src/api
+COPY src/shared /app/src/shared
+
+# Expose the port the FastAPI application runs on
+EXPOSE 8000
+
+# Define the command to run the application (using Uvicorn as the ASGI server)
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
