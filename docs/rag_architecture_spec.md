@@ -16,23 +16,23 @@ graph TD
     LLMProvider((LLM Provider))
     
     %% RAG Backend Regions
-    subgraph Query Path & Reasoning Engine
+    subgraph QueryPath [Query Path & Reasoning Engine]
         API[FastAPI Service]
         Retriever[Hybrid Retriever]
         Orchestrator[Multi-Agent Orchestrator]
     end
     
-    subgraph Data Sources & Ingestion Pipeline
+    subgraph DataSources [Data Sources & Ingestion Pipeline]
         IngestService[Ingestion Worker]
         Parser[Document Parser]
         Enricher[Metadata Enricher]
     end
     
-    subgraph Storage Layer
+    subgraph StorageLayer [Storage Layer]
         PG[(Postgres + pgvector)]
     end
     
-    subgraph Observability, Evaluation, and Validation
+    subgraph ObservabilityLayer [Observability, Evaluation, and Validation]
         Validator[Validation Pipeline<br/>Gatekeeper, Auditor, Strategist]
         Eval[Evaluation & Red-teaming]
         Dashboard[Metrics Dashboard]
