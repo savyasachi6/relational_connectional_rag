@@ -31,11 +31,13 @@ COPY docker/requirements.worker.txt /app/requirements.txt
 # In a real scenario, this installs Unstructured, LlamaParse, or similar libraries.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the core ingestion worker code into the container
-# We assume the worker code lives in a /src/worker directory
-COPY src/worker /app/src/worker
-COPY src/shared /app/src/shared
+# Copy the application code into the container
+COPY src /app/src
 
-# Command to run the background worker (e.g., Celery)
-# This command implies Celery is used to pick up parsing tasks.
-CMD ["celery", "-A", "src.worker.tasks", "worker", "--loglevel=info"]
+# Set PYTHONPATH so absolute imports inside /src work correctly
+ENV PYTHONPATH="/app/src:${PYTHONPATH}"
+
+# For the blueprint, we'll just run a simple python loop to keep the container alive 
+# so we can bash into it and run the ingestion worker manually if needed.
+# In production, this would be a Celery worker.
+CMD ["python", "-c", "import time; print('Worker alive. Waiting for jobs...'); time.sleep(86400)"]

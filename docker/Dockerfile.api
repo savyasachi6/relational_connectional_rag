@@ -29,13 +29,14 @@ COPY docker/requirements.api.txt /app/requirements.txt
 # In a real scenario, this would install the necessary RAG libraries.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the core API application code into the container
-# We assume the API code lives in a /src/api directory
-COPY src/api /app/src/api
-COPY src/shared /app/src/shared
+# Copy the application code into the container
+COPY src /app/src
+
+# Set PYTHONPATH so absolute imports inside /src work correctly
+ENV PYTHONPATH="/app/src:${PYTHONPATH}"
 
 # Expose the port the FastAPI application runs on
 EXPOSE 8000
 
-# Define the command to run the application (using Uvicorn as the ASGI server)
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Define the command to run the application
+CMD ["python", "src/main.py"]
