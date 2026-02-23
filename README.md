@@ -44,6 +44,7 @@ This will launch:
 For complete details on configuring, deploying, and understanding the system, refer to the `docs/` folder:
 
 * **[Architecture Deep Dive](docs/architecture.md)**
+* **[Code Flow Guide](docs/code-flow.md)**
 * **[Unified Database Guide](docs/database.md)**
 * **[Docker Execution & Build](docs/docker-execution.md)**
 * **[Installation Guide](docs/installation.md)**
