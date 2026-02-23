@@ -44,5 +44,6 @@ This will launch:
 For complete details on configuring, deploying, and understanding the system, refer to the `docs/` folder:
 
 * **[Architecture Deep Dive](docs/architecture.md)**
+* **[Unified Database Guide](docs/database.md)**
 * **[Installation Guide](docs/installation.md)**
 * **[Configuration Options](docs/configuration.md)**
