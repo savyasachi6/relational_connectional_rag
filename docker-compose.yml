@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Unified Storage: PostgreSQL with the pgvector extension
   postgres-pgvector:
