@@ -46,6 +46,7 @@ For complete details on configuring, deploying, and understanding the system, re
 * **[Architecture Deep Dive](docs/architecture.md)**
 * **[Code Flow Guide](docs/code-flow.md)**
 * **[Unified Database Guide](docs/database.md)**
+* **[Docker Architecture & Connections](docs/docker-architecture.md)**
 * **[Docker Execution & Build](docs/docker-execution.md)**
 * **[Installation Guide](docs/installation.md)**
 * **[Configuration Options](docs/configuration.md)**
