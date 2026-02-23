@@ -70,7 +70,7 @@ graph LR
     %% Data Sources
     RawDocs[(S3 / Blob Storage)] -->|Trigger| IngestWorker
     
-    subgraph Ingestion Pipeline
+    subgraph IngestionPipeline [Ingestion Pipeline]
         IngestWorker[Document Ingestion] --> Parser[Structure Extraction<br/>PyMuPDF/LlamaParse]
         
         Parser -->|Async| Chunking[Structure-Aware Chunking]
@@ -222,18 +222,18 @@ The RAG system is continuously evaluated using a combination of qualitative judg
 
 ```mermaid
 graph TD
-    subgraph Production Telemetry
+    subgraph ProductionTelemetry [Production Telemetry]
         Logs[Live Logs & Telemetry]
         GroundTruth[(Evaluation Dataset)]
     end
     
-    subgraph Evaluation Pipeline
+    subgraph EvaluationPipeline [Evaluation Pipeline]
         Judges[Automated LLM Judges<br/>Faithfulness/Relevance]
         Metrics[Quantitative Metrics<br/>Precision, Recall, MRR, Latency]
         Dash[Observability Dashboard]
     end
     
-    subgraph Red-Teaming Subsystem
+    subgraph RedTeamingSubsystem [Red-Teaming Subsystem]
         AttackGen[Adversarial Scenario Generator]
         Probe[Red-Team Orchestrator]
     end
