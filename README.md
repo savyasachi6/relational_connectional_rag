@@ -2,7 +2,7 @@
 
 Welcome to the Scalable RAG (Retrieval-Augmented Generation) System Architecture repository. This project provides a production-grade blueprint for deploying AI applications that bridge Large Language Models (LLMs) with private organizational data.
 
-Based on the [ByteMonk architecture overview](https://www.youtube.com/watch?v=zs7AoIXs4u0), this repository moves beyond naive "toy demo" RAG pipelines. It implements a robust, 6-layer architecture designed for scalability, accuracy, and reliability in real-world environments.
+Based on the ByteMonk architecture overview, this repository moves beyond naive "toy demo" RAG pipelines. It implements a robust, 6-layer architecture designed for scalability, accuracy, and reliability in real-world environments.
 
 ## Core Design Philosophy
 
