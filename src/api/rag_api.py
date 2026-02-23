@@ -12,6 +12,17 @@ from ingestion.ingestion_worker import ingest_document
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
+@app.on_event("startup")
+def setup_database():
+    from sqlalchemy import text
+    from db.session import engine
+    from db.models import Base
+    
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    
+    Base.metadata.create_all(bind=engine)
+
 # --- Routes ---
 
 @app.post("/ingest", response_model=IngestResponse, status_code=202)
