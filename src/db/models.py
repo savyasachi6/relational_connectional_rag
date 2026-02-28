@@ -1,7 +1,8 @@
 # src/db/models.py
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, ForeignKey, JSON, func
+    Column, Integer, String, Text, DateTime, ForeignKey, JSON, func, Float
 )
+import uuid
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from pgvector.sqlalchemy import Vector  # pgvector extension wrapper
@@ -59,3 +60,21 @@ class ChunkEmbedding(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     chunk = relationship("Chunk", back_populates="embedding")
+
+
+class EntityRelation(Base):
+    """
+    Explicit edge representing a typed relationship between two chunks or entities.
+    Enables graph traversal and path-based reasoning during retrieval.
+    """
+    __tablename__ = "entity_relations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_chunk_id = Column(UUID(as_uuid=True), ForeignKey("chunks.id"), nullable=False)
+    target_chunk_id = Column(UUID(as_uuid=True), ForeignKey("chunks.id"), nullable=False)
+    relation_type = Column(String, nullable=False) # e.g., 'cites', 'supports', 'next_chunk'
+    weight = Column(Float, default=1.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    source_chunk = relationship("Chunk", foreign_keys=[source_chunk_id], backref="outgoing_relations")
+    target_chunk = relationship("Chunk", foreign_keys=[target_chunk_id], backref="incoming_relations")

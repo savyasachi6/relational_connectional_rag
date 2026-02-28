@@ -2,17 +2,19 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import aliased
 
 from db.session import get_session
-from db.models import Chunk, ChunkEmbedding, Document
+from db.models import Chunk, ChunkEmbedding, Document, EntityRelation
 
 class RetrievedChunk:
     """Standardized DTO for items coming out of hybrid search regardless of method."""
-    def __init__(self, id: str, content: str, score: float, metadata: Dict[str, Any]):
+    def __init__(self, id: str, content: str, score: float, metadata: Dict[str, Any], relations: Optional[List[Dict]] = None):
         self.id = id
         self.content = content
         self.score = score
         self.metadata = metadata
+        self.relations = relations or []
 
 
 class HybridRetriever:
@@ -33,6 +35,9 @@ class HybridRetriever:
             semantic = self._semantic_search(session, query, query_vector, filters, k)
             lexical = self._keyword_search(session, query, filters, k)
             final_set = self._merge_and_rerank(semantic, lexical, k)
+            
+            # Enrich the final set with structural relationships (1-hop paths)
+            final_set = self._relational_search(session, final_set)
             
             return final_set
 
@@ -85,6 +90,45 @@ class HybridRetriever:
         # Sort desc by score
         sorted_chunks = sorted(list(merged.values()), key=lambda x: x.score, reverse=True)
         return sorted_chunks[:top_k]
+
+    def _relational_search(self, session: Session, chunks: List[RetrievedChunk]) -> List[RetrievedChunk]:
+        """
+        Takes the top retrieved standalone chunks and finds immediate connections (1-hop)
+        in the EntityRelation graph to provide surrounding context or related entities.
+        """
+        if not chunks:
+            return chunks
+
+        chunk_ids = [c.id for c in chunks]
+        TargetChunk = aliased(Chunk)
+        
+        # Find all outgoing relations from our top chunks
+        stmt = (
+            select(EntityRelation, TargetChunk)
+            .join(TargetChunk, EntityRelation.target_chunk_id == TargetChunk.id)
+            .where(EntityRelation.source_chunk_id.in_(chunk_ids))
+        )
+        
+        results = session.execute(stmt).all()
+        
+        # Map back to the DTOs
+        relations_by_source = {}
+        for rel, target_chunk in results:
+            src_id = str(rel.source_chunk_id)
+            if src_id not in relations_by_source:
+                relations_by_source[src_id] = []
+                
+            relations_by_source[src_id].append({
+                "relation_type": rel.relation_type,
+                "target_id": str(target_chunk.id),
+                "target_content_snippet": target_chunk.content[:150] + "..." if len(target_chunk.content) > 150 else target_chunk.content
+            })
+            
+        for chunk in chunks:
+            if chunk.id in relations_by_source:
+                chunk.relations.extend(relations_by_source[chunk.id])
+                
+        return chunks
 
 # FastAPI Dependency
 def get_retriever() -> HybridRetriever:

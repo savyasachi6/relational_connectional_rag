@@ -59,6 +59,8 @@ def _persist_chunks_and_embeddings(
     enriched_chunks: Iterable[Dict[str, Any]],
 ) -> None:
     embed_model = get_embedding_model()
+    
+    previous_chunk_id = None
 
     for idx, chunk in enumerate(enriched_chunks):
         chunk_id = uuid4()
@@ -85,5 +87,26 @@ def _persist_chunks_and_embeddings(
         )
         # SQLAlchemy relates via Chunk embedding back_populates
         session.add(db_emb)
+
+        # Create sequential structural relations
+        if previous_chunk_id:
+            # Forward relation: previous -> current
+            rel_forward = models.EntityRelation(
+                source_chunk_id=previous_chunk_id,
+                target_chunk_id=chunk_id,
+                relation_type="next_chunk",
+                weight=1.0
+            )
+            # Backward relation: current -> previous
+            rel_backward = models.EntityRelation(
+                source_chunk_id=chunk_id,
+                target_chunk_id=previous_chunk_id,
+                relation_type="prev_chunk",
+                weight=1.0
+            )
+            session.add(rel_forward)
+            session.add(rel_backward)
+            
+        previous_chunk_id = chunk_id
 
     session.commit()
